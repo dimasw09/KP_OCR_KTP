@@ -101,12 +101,24 @@
       {% endif %}
       <form method="post" enctype="multipart/form-data">
         <label for="file">Choose an image:</label>
+        <img
+          id="image-preview"
+          src="#"
+          alt="Image Preview"
+          style="
+            max-width: 100%;
+            max-height: 200px;
+            margin-bottom: 20px;
+            display: none;
+          "
+        />
         <input
           type="file"
           name="file"
           id="file"
           accept=".jpg, .jpeg, .png"
           required
+          onchange="previewImage(this)"
         />
         <button type="submit">Submit</button>
       </form>
@@ -114,5 +126,21 @@
     <footer>
       <p>PT LSKK</p>
     </footer>
+    <script>
+      function previewImage(input) {
+        var preview = document.getElementById("image-preview");
+        var file = input.files[0];
+        var reader = new FileReader();
+
+        reader.onload = function (e) {
+          preview.src = e.target.result;
+          preview.style.display = "block";
+        };
+
+        if (file) {
+          reader.readAsDataURL(file);
+        }
+      }
+    </script>
   </body>
 </html>

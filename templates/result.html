@@ -56,6 +56,12 @@
         color: #007bff;
       }
 
+      img {
+        max-width: 100%;
+        max-height: 200px;
+        margin-top: 20px;
+      }
+
       footer {
         background-color: #333;
         color: white;
@@ -71,6 +77,7 @@
     </header>
     <div class="container">
       <p>JSON Data:</p>
+
       <pre>{{ result.json_data }}</pre>
       <p>
         Akurasi NIK: <span class="accuracy">{{ result.nik_accuracy }}%</span>
@@ -78,6 +85,11 @@
       <p>
         Akurasi Nama: <span class="accuracy">{{ result.nama_accuracy }}%</span>
       </p>
+      <img
+        id="KTP : "
+        src="{{ url_for('static', filename='temp_image.jpg') }}"
+        alt="Original Image"
+      />
     </div>
     <footer>
       <p>PT LSKK</p>

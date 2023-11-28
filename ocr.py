@@ -26,6 +26,8 @@ collection = db["ktp_ocr"]
 
 
 # Function Definitions
+
+
 def similarity_ratio(a, b):
     return SequenceMatcher(None, a, b).ratio()
 
@@ -86,7 +88,6 @@ def filter_data(data):
 
 def create_json_data(new_filename, filtered_data):
     ordered_data = {"nama_file": new_filename}
-    # Use filtered_data directly instead of creating another dictionary
     json_data = json.dumps(ordered_data | filtered_data, indent=3)
     return json_data
 
@@ -98,27 +99,22 @@ def allowed_file(filename):
 @app.route("/", methods=["GET", "POST"])
 def upload_file():
     if request.method == "POST":
-        # Check if the post request has the file part
         if "file" not in request.files:
             return render_template("index.html", error="No file part")
 
         file = request.files["file"]
 
-        # Check if the file is allowed
         if file and allowed_file(file.filename):
-            # Save the file to a temporary location
-            temp_file_path = "temp_image.jpg"
+            temp_file_path = "static/temp_image.jpg"
             file.save(temp_file_path)
+            result_image_path = os.path.join("static", "result_image.jpg")
 
             try:
-                # You had a redundant file.open(temp_file_path) line, removed it
                 extracted_text = extract_data(temp_file_path)
                 extracted_data = parse_extracted_data(extracted_text)
                 filtered_data = filter_data(extracted_data)
 
-                img = Image.open(
-                    temp_file_path
-                )  # Use temp_file_path instead of image_temp_path
+                img = Image.open(temp_file_path)
                 new_width = 1040
                 new_height = 780
                 img = img.resize((new_width, new_height), Image.BILINEAR)
@@ -130,10 +126,8 @@ def upload_file():
                 _, threshed = cv2.threshold(
                     gray, THRESHOLD_VALUE, 200, cv2.THRESH_BINARY
                 )
+                result_image_path = os.path.join("static", "result_image.jpg")
 
-                result_image_path = os.path.join(
-                    "F:\KerjaPraktik\KTP-SCAN1\HT", "T." + file.filename
-                )
                 cv2.imwrite(
                     result_image_path,
                     threshed,
@@ -154,7 +148,10 @@ def upload_file():
                 }
                 collection.insert_one(filtered_data)
 
-                return render_template("result.html", result=result)
+                uploaded_image_url = result_image_path
+                return render_template(
+                    "result.html", result=result, uploaded_image_url=result_image_path
+                )
 
             except cv2.error as e:
                 return render_template("index.html", error=f"OpenCV Error: {str(e)}")
