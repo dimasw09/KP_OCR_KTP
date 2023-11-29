@@ -12,10 +12,10 @@ app = Flask(__name__)
 
 # Constants
 ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png"}
-THRESHOLD_VALUE = 125
+THRESHOLD_VALUE = 130
 LANG = "ind"
 ALLOWED_FIELDS = ["NIK", "Nama"]
-GROUND_TRUTH = {"NIK": "3328011502950008", "Nama": "TRI ADI KUNCORO Y"}
+GROUND_TRUTH = {"NIK": "3205190901000005", "Nama": "DIMAS WAHYUDI"}
 
 # Inisialisasi koneksi MongoDB
 mongo_client = MongoClient(
