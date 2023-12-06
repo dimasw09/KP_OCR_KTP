@@ -17,12 +17,19 @@ LANG = "ind"
 ALLOWED_FIELDS = ["NIK", "Nama"]
 GROUND_TRUTH = {"NIK": "3205190901000005", "Nama": "DIMAS WAHYUDI"}
 
+
 # Inisialisasi koneksi MongoDB
-mongo_client = MongoClient(
-    "mongodb://magangitg:bWFnYW5naXRn@database2.pptik.id:27017/magangitg"
-)
-db = mongo_client["magangitg"]
-collection = db["ktp_ocr"]
+def connect_to_mongodb():
+    try:
+        mongo_client = MongoClient(
+            "mongodb://magangitg:bWFnYW5naXRn@database2.pptik.id:27017/magangitg"
+        )
+        db = mongo_client["magangitg"]
+        collection = db["ktp_ocr"]
+        return collection
+    except Exception as e:
+        print(f"MongoDB Connection Error: {str(e)}")
+        return None
 
 
 # Function Definitions
@@ -36,6 +43,12 @@ def calculate_accuracy(ground_truth, extracted_text):
     return similarity_ratio(ground_truth, extracted_text) * 100
 
 
+def image_processing(img):
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    _, threshed = cv2.threshold(gray, THRESHOLD_VALUE, 200, cv2.THRESH_BINARY)
+    return threshed
+
+
 def extract_data(image_path):
     try:
         with open(image_path, "rb") as img_file:
@@ -43,11 +56,10 @@ def extract_data(image_path):
                 np.frombuffer(img_file.read(), np.uint8), cv2.IMREAD_COLOR
             )
 
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        _, threshed = cv2.threshold(gray, THRESHOLD_VALUE, 200, cv2.THRESH_BINARY)
+        processed_image = image_processing(img)
 
         result = pytesseract.image_to_string(
-            threshed,
+            processed_image,
             lang=LANG,
             config="--psm 6 --oem 3 --dpi 300 -c tessedit_char_blacklist=@#$?%^&*()- ",
         )
@@ -110,7 +122,14 @@ def upload_file():
             result_image_path = os.path.join("static", "result_image.jpg")
 
             try:
-                extracted_text = extract_data(temp_file_path)
+                img = cv2.imread(temp_file_path)
+                processed_image = image_processing(img)
+
+                extracted_text = pytesseract.image_to_string(
+                    processed_image,
+                    lang=LANG,
+                    config="--psm 6 --oem 3 --dpi 300 -c tessedit_char_blacklist=@#$?%^&*()- ",
+                )
                 extracted_data = parse_extracted_data(extracted_text)
                 filtered_data = filter_data(extracted_data)
 
@@ -119,18 +138,9 @@ def upload_file():
                 new_height = 780
                 img = img.resize((new_width, new_height), Image.BILINEAR)
 
-                img_np = np.fromfile(temp_file_path, np.uint8)
-                img = cv2.imdecode(img_np, cv2.IMREAD_COLOR)
-
-                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-                _, threshed = cv2.threshold(
-                    gray, THRESHOLD_VALUE, 200, cv2.THRESH_BINARY
-                )
-                result_image_path = os.path.join("static", "result_image.jpg")
-
                 cv2.imwrite(
                     result_image_path,
-                    threshed,
+                    processed_image,
                     [int(cv2.IMWRITE_JPEG_QUALITY), 100],
                 )
 
@@ -146,7 +156,11 @@ def upload_file():
                     "nik_accuracy": nik_accuracy,
                     "nama_accuracy": nama_accuracy,
                 }
-                collection.insert_one(filtered_data)
+
+                # Koneksi ke MongoDB
+                mongodb_collection = connect_to_mongodb()
+                if mongodb_collection is not None:
+                    mongodb_collection.insert_one(filtered_data)
 
                 uploaded_image_url = result_image_path
                 return render_template(
